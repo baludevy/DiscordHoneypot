@@ -57,6 +57,9 @@ class MyHelp(commands.HelpCommand):
         await channel.send(
             "run `h!set.logs` to set the channel for the bot to log stuff"
         )
+        await channel.send(
+            "run `h!remove.channel` to disable the bot"
+        )
 
 
 bot.help_command = MyHelp()
@@ -159,6 +162,24 @@ async def setlogs(ctx: commands.Context) -> None:
 
     log_channel_cache[guild_id] = log_channel_id
     await ctx.author.send(f"the channel <#{log_channel_id}> was set as the log channel")
+
+
+@bot.command(name="remove.channel")
+@commands.has_permissions(administrator=True)
+async def removechannel(ctx: commands.Context) -> None:
+    if not ctx.guild:
+        return
+
+    guild_id = ctx.guild.id
+
+    if guild_id in channel_cache:
+        del channel_cache[guild_id]
+        channel_collection.delete_one({"guild_id": guild_id})
+        await ctx.author.send(
+            "the honeypot channel was removed from my database, the bot is now disabled in your server"
+        )
+    else:
+        await ctx.author.send("no honeypot channel is already set")
 
 
 @bot.event
