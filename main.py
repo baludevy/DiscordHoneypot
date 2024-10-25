@@ -86,7 +86,7 @@ async def on_message(message: discord.Message) -> None:
                 if log_channel:
                     embed = discord.Embed(
                         title="Someone reached into the honeypot",
-                        description=f"A user was caught sending a message in the honeypot channel `({log_channel.id})`\n```\{message.content}\n```",
+                        description=f"A user was caught sending a message in the honeypot channel `({log_channel.id})`\n```{message.content}\n```",
                         colour=0xE8B551,
                     )
 
