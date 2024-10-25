@@ -23,6 +23,7 @@ if not TOKEN:
 
 bot = commands.Bot(command_prefix="h!", intents=discord.Intents.all())
 
+
 @bot.event
 async def on_ready() -> None:
     print("READY")
@@ -46,13 +47,20 @@ async def on_ready() -> None:
     print(f"loaded channels into cache: {channel_cache}")
     print(f"loaded log channels into cache: {log_channel_cache}")
 
+
 class MyHelp(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         channel = self.get_destination()
-        await channel.send('run `h!set.channel` to set the channel for the bot to listen for messages in')
-        await channel.send('run `h!set.logs` to set the channel for the bot to log stuff')
+        await channel.send(
+            "run `h!set.channel` to set the channel for the bot to listen for messages in"
+        )
+        await channel.send(
+            "run `h!set.logs` to set the channel for the bot to log stuff"
+        )
+
 
 bot.help_command = MyHelp()
+
 
 @bot.event
 async def on_message(message: discord.Message) -> None:
@@ -74,19 +82,25 @@ async def on_message(message: discord.Message) -> None:
                 print(f"user {message.author.id} saved to db")
 
             await message.author.ban()
-        
+
             if guild_id in log_channel_cache:
                 log_channel = bot.get_channel(log_channel_cache[guild_id])
                 if log_channel:
-                    embed = discord.Embed(title="Someone reached into the honeypot",
-                      description=f"A user was banned from the server because they were caught sending a message in the honeypot channel `({log_channel.id})`\n```\{message.content}\n```",
-                      colour=0xe8b551)
+                    embed = discord.Embed(
+                        title="Someone reached into the honeypot",
+                        description=f"A user was banned from the server because they were caught sending a message in the honeypot channel `({log_channel.id})`\n```\{message.content}\n```",
+                        colour=0xE8B551,
+                    )
 
-                embed.set_author(name="Honeypot", icon_url="https://cdn.discordapp.com/avatars/1299044225538592768/2f84ce1bf85e3cdfe2d31f3293e41272?size=1024")
+                embed.set_author(
+                    name="Honeypot",
+                    icon_url="https://cdn.discordapp.com/avatars/1299044225538592768/2f84ce1bf85e3cdfe2d31f3293e41272?size=1024",
+                )
                 embed.set_footer(text="Honeypot Log")
                 await log_channel.send(embed=embed)
 
     await bot.process_commands(message)
+
 
 @bot.command(name="set.channel")
 @commands.has_permissions(administrator=True)
@@ -117,6 +131,7 @@ async def setchannel(ctx: commands.Context) -> None:
         f"the channel <#{channel_id}> was set as the honeypot channel"
     )
 
+
 @bot.command(name="set.logs")
 @commands.has_permissions(administrator=True)
 async def setlogs(ctx: commands.Context) -> None:
@@ -138,12 +153,13 @@ async def setlogs(ctx: commands.Context) -> None:
             )
             return
     else:
-        log_channel_collection.insert_one({"guild_id": guild_id, "channel_id": log_channel_id})
+        log_channel_collection.insert_one(
+            {"guild_id": guild_id, "channel_id": log_channel_id}
+        )
 
     log_channel_cache[guild_id] = log_channel_id
-    await ctx.author.send(
-        f"the channel <#{log_channel_id}> was set as the log channel"
-    )
+    await ctx.author.send(f"the channel <#{log_channel_id}> was set as the log channel")
+
 
 @bot.event
 async def on_guild_channel_delete(channel: discord.TextChannel) -> None:
@@ -155,6 +171,7 @@ async def on_guild_channel_delete(channel: discord.TextChannel) -> None:
         del log_channel_cache[guild_id]
         log_channel_collection.delete_one({"guild_id": guild_id})
 
+
 @bot.event
 async def on_guild_remove(guild: discord.Guild) -> None:
     guild_id = guild.id
@@ -164,5 +181,6 @@ async def on_guild_remove(guild: discord.Guild) -> None:
     if guild_id in log_channel_cache:
         del log_channel_cache[guild_id]
         log_channel_collection.delete_one({"guild_id": guild_id})
+
 
 bot.run(TOKEN)
