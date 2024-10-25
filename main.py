@@ -81,14 +81,12 @@ async def on_message(message: discord.Message) -> None:
                 user_collection.insert_one(user_data)
                 print(f"user {message.author.id} saved to db")
 
-            await message.author.ban()
-
             if guild_id in log_channel_cache:
                 log_channel = bot.get_channel(log_channel_cache[guild_id])
                 if log_channel:
                     embed = discord.Embed(
                         title="Someone reached into the honeypot",
-                        description=f"A user was banned from the server because they were caught sending a message in the honeypot channel `({log_channel.id})`\n```\{message.content}\n```",
+                        description=f"A user was caught sending a message in the honeypot channel `({log_channel.id})`\n```\{message.content}\n```",
                         colour=0xE8B551,
                     )
 
@@ -98,6 +96,8 @@ async def on_message(message: discord.Message) -> None:
                 )
                 embed.set_footer(text="Honeypot Log")
                 await log_channel.send(embed=embed)
+
+                await message.author.ban()
 
     await bot.process_commands(message)
 
