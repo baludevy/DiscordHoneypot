@@ -21,7 +21,9 @@ if not TOKEN:
     print("bitch ahh where token")
     exit(1)
 
-bot = commands.Bot(command_prefix="h!", intents=discord.Intents.all())
+activity = discord.Game("h!help")
+
+bot = commands.Bot(command_prefix="h!", intents=discord.Intents.all(), activity=activity)
 
 
 @bot.event
