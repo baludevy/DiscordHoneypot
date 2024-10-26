@@ -21,9 +21,7 @@ if not TOKEN:
     print("bitch ahh where token")
     exit(1)
 
-activity = discord.Game("h!help")
-
-bot = commands.Bot(command_prefix="h!", intents=discord.Intents.all(), activity=activity)
+bot = commands.Bot(command_prefix="h!", intents=discord.Intents.all())
 
 
 @bot.event
@@ -54,13 +52,7 @@ class MyHelp(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         channel = self.get_destination()
         await channel.send(
-            "run `h!set.channel` to set the channel for the bot to listen for messages in"
-        )
-        await channel.send(
-            "run `h!set.logs` to set the channel for the bot to log stuff"
-        )
-        await channel.send(
-            "run `h!remove.channel` to disable the bot"
+            "run `h!set.channel` to set the channel for the bot to listen for messages in\nrun `h!set.logs` to set the channel for the bot to log stuff\nrun`h!disable` to disable the bot, and to remove your server from my database"
         )
 
 
@@ -89,27 +81,46 @@ async def on_message(message: discord.Message) -> None:
             if guild_id in log_channel_cache:
                 log_channel = bot.get_channel(log_channel_cache[guild_id])
                 if log_channel:
-                    embed = discord.Embed(
-                        title="Someone reached into the honeypot",
-                        description=f"A user was caught sending a message in the honeypot channel `({log_channel.id})`\n```{message.content}\n```",
-                        colour=0xE8B551,
-                    )
+                    if log_channel.permissions_for(log_channel.guild.me).send_messages:
+                        embed = discord.Embed(
+                            title="Someone reached into the honeypot",
+                            description=f"A user was caught sending a message in the honeypot channel `({log_channel.id})`\n```{message.content}\n```",
+                            colour=0xE8B551,
+                        )
 
-                embed.set_author(
-                    name="Honeypot",
-                    icon_url="https://cdn.discordapp.com/avatars/1299044225538592768/2f84ce1bf85e3cdfe2d31f3293e41272?size=1024",
-                )
-                embed.set_footer(text="Honeypot Log")
-                await log_channel.send(embed=embed)
+                        embed.set_author(
+                            name="Honeypot",
+                            icon_url="https://cdn.discordapp.com/avatars/1299044225538592768/2f84ce1bf85e3cdfe2d31f3293e41272?size=1024",
+                        )
+                        embed.set_footer(text="Honeypot Log")
+                        await log_channel.send(embed=embed)
 
+            if message.guild.me.guild_permissions.ban_members:
                 await message.author.ban()
+            else:
+                print(f"Bot lacks permission to ban users in guild {guild_id}")
+                if guild_id in log_channel_cache:
+                    log_channel = bot.get_channel(log_channel_cache[guild_id])
+                    if log_channel:
+                        await log_channel.send(
+                            "bot lacks permission to ban users, please make sure it has the `Ban Members` permission"
+                        )
 
     await bot.process_commands(message)
 
 
+async def check_admin(ctx: commands.Context):
+    if not ctx.author.guild_permissions.administrator:
+        await ctx.author.send("you need admin permissions to run this command")
+        return False
+    return True
+
+
 @bot.command(name="set.channel")
-@commands.has_permissions(administrator=True)
 async def setchannel(ctx: commands.Context) -> None:
+    if not await check_admin(ctx):
+        return
+
     if not ctx.guild or not isinstance(ctx.channel, discord.TextChannel):
         return
 
@@ -138,8 +149,10 @@ async def setchannel(ctx: commands.Context) -> None:
 
 
 @bot.command(name="set.logs")
-@commands.has_permissions(administrator=True)
 async def setlogs(ctx: commands.Context) -> None:
+    if not await check_admin(ctx):
+        return
+
     if not ctx.guild or not isinstance(ctx.channel, discord.TextChannel):
         return
 
@@ -166,9 +179,11 @@ async def setlogs(ctx: commands.Context) -> None:
     await ctx.author.send(f"the channel <#{log_channel_id}> was set as the log channel")
 
 
-@bot.command(name="remove.channel")
-@commands.has_permissions(administrator=True)
-async def removechannel(ctx: commands.Context) -> None:
+@bot.command(name="disable")
+async def disable(ctx: commands.Context) -> None:
+    if not await check_admin(ctx):
+        return
+
     if not ctx.guild:
         return
 
@@ -177,11 +192,9 @@ async def removechannel(ctx: commands.Context) -> None:
     if guild_id in channel_cache:
         del channel_cache[guild_id]
         channel_collection.delete_one({"guild_id": guild_id})
-        await ctx.author.send(
-            "the honeypot channel was removed from my database, the bot is now disabled in your server"
-        )
+        await ctx.author.send("your server has been removed from the database")
     else:
-        await ctx.author.send("no honeypot channel is already set")
+        await ctx.author.send("no honeypot channel is set for this server")
 
 
 @bot.event
